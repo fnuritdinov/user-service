@@ -6,6 +6,7 @@ require (
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgx/v5 v5.10.0
 	go.uber.org/zap v1.28.0
+	golang.org/x/crypto v0.50.0
 	google.golang.org/grpc v1.82.0
 	google.golang.org/protobuf v1.36.11
 )

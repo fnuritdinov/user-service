@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"errors"
+	"user-service/internal/models"
 	"user-service/internal/service"
 	"user-service/pkg/logger"
-	"user-service/pkg/models"
 	user "user-service/userpb/v1"
 )
 

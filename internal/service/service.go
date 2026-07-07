@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"fmt"
+	"user-service/internal/models"
 	"user-service/internal/repository"
 	"user-service/pkg/errors"
-	"user-service/pkg/models"
+	"user-service/pkg/password"
 )
 
 type Service struct {
@@ -22,7 +23,18 @@ func (s *Service) Add(ctx context.Context, request models.User) (int, error) {
 		return 0, errors.ErrFromValidate
 	}
 
-	userID, err := s.repo.Add(ctx, request)
+	hashPassword, err := password.HashPassword(request.Password)
+	if err != nil {
+		return 0, errors.ErrGeneratePassword
+	}
+
+	userID, err := s.repo.Add(ctx, models.User{
+		Name:     request.Name,
+		Email:    request.Email,
+		Password: hashPassword,
+		Phone:    request.Phone,
+		Age:      request.Age,
+	})
 	if err != nil {
 		return 0, fmt.Errorf("error from s.repo.Add")
 	}
