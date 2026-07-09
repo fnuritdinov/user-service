@@ -5,6 +5,7 @@ import (
 	"errors"
 	"user-service/internal/models"
 	"user-service/internal/service"
+	errs "user-service/pkg/errors"
 	"user-service/pkg/logger"
 	user "user-service/userpb/v1"
 )
@@ -34,6 +35,13 @@ func (s *Server) Add(ctx context.Context, req *user.CreateUserRequest) (*user.Cr
 
 	userID, err := s.service.Add(ctx, request)
 	if err != nil {
+		if errors.Is(err, errs.ErrGeneratePassword) {
+			return nil, errs.ErrBadRequest
+		}
+		if errors.Is(err, errs.ErrFromValidate) {
+			return nil, errs.ErrBadRequest
+		}
+		s.lg.Error("error from s.service.Add")
 		return nil, err
 	}
 
@@ -50,6 +58,10 @@ func (s *Server) GetByID(ctx context.Context, req *user.GetUserRequest) (*user.G
 
 	userFromDB, err := s.service.GetByID(ctx, id)
 	if err != nil {
+		if errors.Is(err, errs.ErrUserNotFound) {
+			return nil, errs.ErrUserNotFound
+		}
+		s.lg.Error("error from s.service.GetByID")
 		return nil, err
 	}
 	return &user.GetUserResponse{
@@ -70,6 +82,13 @@ func (s *Server) Update(ctx context.Context, req *user.UpdateUserRequest) (*user
 
 	err := s.service.Update(ctx, request)
 	if err != nil {
+		if errors.Is(err, errs.ErrUserNotFound) {
+			return nil, errs.ErrUserNotFound
+		}
+		if errors.Is(err, errs.ErrFromValidate) {
+			return nil, errs.ErrBadRequest
+		}
+		s.lg.Error("error from s.service.Update")
 		return nil, err
 	}
 

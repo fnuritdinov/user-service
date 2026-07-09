@@ -27,7 +27,7 @@ func (r *Repository) Add(ctx context.Context, request models.User) (int, error) 
 	var id int
 	err := r.db.QueryRow(ctx, query, request.Name, request.Email, request.Password, request.Phone, request.Age).Scan(&id)
 	if err != nil {
-		return 0, errors.New("error from r.db.Exec")
+		return 0, err
 	}
 
 	return id, nil
@@ -57,7 +57,7 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (models.User, error)
 
 func (r *Repository) Update(ctx context.Context, request models.UpdateUser) error {
 
-	const query = `UPDATE mv_users SET name = $2, phone = $3, WHERE id = $1`
+	const query = `UPDATE mv_users SET name = $2, phone = $3 WHERE id = $1`
 
 	result, err := r.db.Exec(ctx, query, request.ID, request.Name, request.Phone)
 	if err != nil {
