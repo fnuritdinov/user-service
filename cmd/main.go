@@ -8,13 +8,14 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
-	"user-service/internal/config"
-	"user-service/internal/repository"
-	"user-service/internal/server"
-	"user-service/internal/service"
-	"user-service/pkg/db"
-	"user-service/pkg/logger"
-	user "user-service/userpb/v1"
+
+	"github.com/fnuritdinov/user-service/internal/config"
+	"github.com/fnuritdinov/user-service/internal/repository"
+	"github.com/fnuritdinov/user-service/internal/server"
+	"github.com/fnuritdinov/user-service/internal/service"
+	"github.com/fnuritdinov/user-service/pkg/db"
+	"github.com/fnuritdinov/user-service/pkg/logger"
+	user "github.com/fnuritdinov/user-service/userpb/v1"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -28,6 +29,11 @@ func main() {
 		log.Fatal("config.New", err)
 	}
 
+	lg, err := logger.New(true)
+	if err != nil {
+		log.Fatal("failed to create logger", err)
+	}
+
 	conn, err := db.New(db.Option{
 		Host:     cfg.DBHost,
 		Port:     cfg.DBPort,
@@ -36,21 +42,16 @@ func main() {
 		DBName:   cfg.DBName,
 	})
 	if err != nil {
-		log.Fatal("failed to connect to db:", err)
+		lg.Error("failed to connect to db:", zap.Error(err))
 	}
 	defer conn.Close()
-
-	lg, err := logger.New(true)
-	if err != nil {
-		log.Fatal("failed to create logger", err)
-	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	lis, err := net.Listen(cfg.NETWORK, cfg.ADDRESS)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		lg.Error("failed to listen: %v", zap.Error(err))
 	}
 
 	grpcServer := grpc.NewServer()
@@ -68,7 +69,7 @@ func main() {
 	go func() {
 		lg.Info("server listening at %v", zap.String("addr", lis.Addr().String()))
 		if err = grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			lg.Error("failed to serve: %v", zap.Error(err))
 		}
 	}()
 

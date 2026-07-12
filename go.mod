@@ -1,4 +1,4 @@
-module user-service
+module github.com/fnuritdinov/user-service
 
 go 1.26.3
 

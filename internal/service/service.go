@@ -3,10 +3,11 @@ package service
 import (
 	"context"
 	"fmt"
-	"user-service/internal/models"
-	"user-service/internal/repository"
-	"user-service/pkg/errors"
-	"user-service/pkg/password"
+
+	"github.com/fnuritdinov/user-service/internal/models"
+	"github.com/fnuritdinov/user-service/internal/repository"
+	"github.com/fnuritdinov/user-service/pkg/errors"
+	"github.com/fnuritdinov/user-service/pkg/password"
 )
 
 type Service struct {
@@ -36,7 +37,7 @@ func (s *Service) Add(ctx context.Context, request models.User) (int, error) {
 		Age:      request.Age,
 	})
 	if err != nil {
-		return 0, fmt.Errorf("error from s.repo.Add")
+		return 0, fmt.Errorf("error from s.repo.Add %w", err)
 	}
 
 	return userID, nil
@@ -45,7 +46,7 @@ func (s *Service) Add(ctx context.Context, request models.User) (int, error) {
 func (s *Service) GetByID(ctx context.Context, id int64) (models.User, error) {
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return models.User{}, err
+		return models.User{}, fmt.Errorf("error from s.repo.GetByID %w", err)
 	}
 	return user, nil
 }
@@ -63,7 +64,7 @@ func (s *Service) Update(ctx context.Context, request models.UpdateUser) error {
 
 	err = s.repo.Update(ctx, request)
 	if err != nil {
-		return err
+		return fmt.Errorf("error from s.repo.Update %w", err)
 	}
 
 	return nil

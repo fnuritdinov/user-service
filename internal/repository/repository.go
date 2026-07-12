@@ -3,8 +3,9 @@ package repository
 import (
 	"context"
 	"errors"
-	"user-service/internal/models"
-	errs "user-service/pkg/errors"
+
+	"github.com/fnuritdinov/user-service/internal/models"
+	errs "github.com/fnuritdinov/user-service/pkg/errors"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"

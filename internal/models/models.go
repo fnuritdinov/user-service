@@ -1,7 +1,7 @@
 package models
 
 import (
-	errs "user-service/pkg/errors"
+	errs "github.com/fnuritdinov/user-service/pkg/errors"
 )
 
 type User struct {
