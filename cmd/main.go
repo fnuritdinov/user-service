@@ -15,7 +15,7 @@ import (
 	"github.com/fnuritdinov/user-service/internal/service"
 	"github.com/fnuritdinov/user-service/pkg/db"
 	"github.com/fnuritdinov/user-service/pkg/logger"
-	user "github.com/fnuritdinov/user-service/userpb/v1"
+	user "github.com/fnuritdinov/user-service/userpb"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"

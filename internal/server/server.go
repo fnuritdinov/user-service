@@ -8,7 +8,7 @@ import (
 	"github.com/fnuritdinov/user-service/internal/service"
 	errs "github.com/fnuritdinov/user-service/pkg/errors"
 	"github.com/fnuritdinov/user-service/pkg/logger"
-	user "github.com/fnuritdinov/user-service/userpb/v1"
+	user "github.com/fnuritdinov/user-service/userpb"
 	"go.uber.org/zap"
 )
 
@@ -25,7 +25,7 @@ func New(lg logger.Logger, service service.Service) *Server {
 	}
 }
 
-func (s *Server) Add(ctx context.Context, req *user.CreateUserRequest) (*user.CreateUserResponse, error) {
+func (s *Server) Register(ctx context.Context, req *user.RegisterUserRequest) (*user.RegisterUserResponse, error) {
 
 	request := models.User{
 		Name:     req.Name,
@@ -35,7 +35,7 @@ func (s *Server) Add(ctx context.Context, req *user.CreateUserRequest) (*user.Cr
 		Phone:    req.Phone,
 	}
 
-	userID, err := s.service.Add(ctx, request)
+	err := s.service.Register(ctx, request)
 	if err != nil {
 		if errors.Is(err, errs.ErrGeneratePassword) {
 			return nil, errs.ErrBadRequest
@@ -48,36 +48,91 @@ func (s *Server) Add(ctx context.Context, req *user.CreateUserRequest) (*user.Cr
 		return nil, err
 	}
 
-	return &user.CreateUserResponse{
-		Id: int64(userID),
+	return &user.RegisterUserResponse{
+		Message: "successfully registration",
 	}, nil
 }
 
-func (s *Server) GetByID(ctx context.Context, req *user.GetUserRequest) (*user.GetUserResponse, error) {
+func (s *Server) Verify(ctx context.Context, req *user.VerifyUserRequest) (*user.VerifyUserResponse, error) {
+
+	request := models.VerifyRequest{
+		Email: req.Email,
+		Code:  req.Code,
+	}
+
+	id, err := s.service.Verify(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.VerifyUserResponse{
+		Id: int64(id),
+	}, nil
+}
+
+func (s *Server) Login(ctx context.Context, req *user.LoginUserRequest) (*user.LoginUserResponse, error) {
+
+	request := models.LoginRequest{
+		Email:    req.Email,
+		Password: req.Password,
+	}
+
+	accessToken, refreshToken, err := s.service.Login(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.LoginUserResponse{
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken}, nil
+}
+
+func (s *Server) RefreshToken(ctx context.Context, req *user.RefreshTokenUserRequest) (*user.RefreshTokenUserResponse, error) {
+
+	request := models.RefreshTokenReq{
+		RefreshToken: req.RefreshToken,
+	}
+
+	tokens, err := s.service.RefreshToken(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.RefreshTokenUserResponse{
+		UserID:       int64(tokens.UserID),
+		RefreshToken: tokens.RefreshToken,
+		AccessToken:  tokens.AccessToken,
+	}, nil
+}
+
+func (s *Server) GetUser(ctx context.Context, req *user.GetUserRequest) (*user.GetUserResponse, error) {
 	id := req.Id
 	if id < 1 {
-		return &user.GetUserResponse{}, errors.New("invalid id")
+		return &user.GetUserResponse{}, errors.New("id is empty")
 	}
 
 	userFromDB, err := s.service.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, errs.ErrUserNotFound) {
-			return nil, errs.ErrUserNotFound
+			return nil, errs.ErrNotFound
 		}
 		s.lg.Error("error from s.service.GetByID",
 			zap.Error(err))
 		return nil, err
 	}
 	return &user.GetUserResponse{
-		Id:    int64(userFromDB.ID),
-		Name:  userFromDB.Name,
-		Phone: userFromDB.Phone,
-		Email: userFromDB.Email,
-		Age:   int64(userFromDB.Age),
+		User: &user.User{
+			Id:    int64(userFromDB.ID),
+			Name:  userFromDB.Name,
+			Phone: userFromDB.Phone,
+			Email: userFromDB.Email,
+			Age:   userFromDB.Age,
+			Role:  userFromDB.Role,
+		},
 	}, nil
 }
 
-func (s *Server) Update(ctx context.Context, req *user.UpdateUserRequest) (*user.UpdateUserResponse, error) {
+func (s *Server) UpdateUser(ctx context.Context, req *user.UpdateUserRequest) (*user.UpdateUserResponse, error) {
 	request := models.UpdateUser{
 		ID:    int(req.Id),
 		Name:  req.Name,
@@ -100,5 +155,32 @@ func (s *Server) Update(ctx context.Context, req *user.UpdateUserRequest) (*user
 	return &user.UpdateUserResponse{
 		Code:    0,
 		Message: "user successful updated",
+	}, nil
+}
+
+func (s *Server) ListUsers(ctx context.Context, req *user.ListUsersRequest) (*user.ListUsersResponse, error) {
+
+	usersFromDB, err := s.service.GetList(ctx)
+	if err != nil {
+		s.lg.Error("error from s.service.List",
+			zap.Error(err))
+		return nil, err
+	}
+
+	users := make([]*user.User, 0, len(usersFromDB))
+
+	for _, u := range usersFromDB {
+		users = append(users, &user.User{
+			Id:    int64(u.ID),
+			Name:  u.Name,
+			Email: u.Email,
+			Phone: u.Phone,
+			Age:   u.Age,
+			Role:  u.Role,
+		})
+	}
+
+	return &user.ListUsersResponse{
+		Users: users,
 	}, nil
 }
