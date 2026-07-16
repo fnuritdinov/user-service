@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 
+	user "github.com/fnuritdinov/proto/userpb"
 	"github.com/fnuritdinov/user-service/internal/models"
 	"github.com/fnuritdinov/user-service/internal/service"
 	errs "github.com/fnuritdinov/user-service/pkg/errors"
 	"github.com/fnuritdinov/user-service/pkg/logger"
-	user "github.com/fnuritdinov/user-service/userpb"
 	"go.uber.org/zap"
 )
 
@@ -106,9 +106,10 @@ func (s *Server) RefreshToken(ctx context.Context, req *user.RefreshTokenUserReq
 }
 
 func (s *Server) GetUser(ctx context.Context, req *user.GetUserRequest) (*user.GetUserResponse, error) {
+
 	id := req.Id
 	if id < 1 {
-		return &user.GetUserResponse{}, errors.New("id is empty")
+		return nil, errors.New("id is empty")
 	}
 
 	userFromDB, err := s.service.GetByID(ctx, id)
@@ -133,6 +134,7 @@ func (s *Server) GetUser(ctx context.Context, req *user.GetUserRequest) (*user.G
 }
 
 func (s *Server) UpdateUser(ctx context.Context, req *user.UpdateUserRequest) (*user.UpdateUserResponse, error) {
+
 	request := models.UpdateUser{
 		ID:    int(req.Id),
 		Name:  req.Name,
@@ -182,5 +184,57 @@ func (s *Server) ListUsers(ctx context.Context, req *user.ListUsersRequest) (*us
 
 	return &user.ListUsersResponse{
 		Users: users,
+	}, nil
+}
+
+func (s *Server) GetUserMe(ctx context.Context, req *user.GetUserMeRequest) (*user.GetUserMeResponse, error) {
+
+	id := req.Id
+	if id < 1 {
+		return nil, errors.New("id is empty")
+	}
+
+	userFromDB, err := s.service.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, errs.ErrUserNotFound) {
+			return nil, errs.ErrNotFound
+		}
+		s.lg.Error("error from s.service.GetByID",
+			zap.Error(err))
+		return nil, err
+	}
+	return &user.GetUserMeResponse{
+		User: &user.User{
+			Id:    int64(userFromDB.ID),
+			Name:  userFromDB.Name,
+			Phone: userFromDB.Phone,
+			Email: userFromDB.Email,
+			Age:   userFromDB.Age,
+			Role:  userFromDB.Role,
+		},
+	}, nil
+}
+
+func (s *Server) CheckToken(ctx context.Context, req *user.CheckTokenRequest) (*user.CheckTokenResponse, error) {
+
+	request := models.CheckToken{
+		AccessToken: req.AccessToken,
+	}
+
+	myUser, err := s.service.CheckToken(ctx, request)
+	if err != nil {
+		s.lg.Error("error from s.service.CheckToken")
+		return nil, err
+	}
+
+	return &user.CheckTokenResponse{
+		User: &user.User{
+			Id:    int64(myUser.ID),
+			Name:  myUser.Name,
+			Email: myUser.Email,
+			Phone: myUser.Phone,
+			Age:   myUser.Age,
+			Role:  myUser.Role,
+		},
 	}, nil
 }

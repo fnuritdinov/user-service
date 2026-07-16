@@ -73,3 +73,7 @@ type RefreshAccessTokens struct {
 	AccessToken  string
 	UserID       int
 }
+
+type CheckToken struct {
+	AccessToken string
+}

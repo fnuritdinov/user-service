@@ -16,11 +16,13 @@ import (
 
 type Service struct {
 	repo    repository.Repository
-	myCache cache.MemoryCache
+	myCache cache.ICache
 }
 
-func New(repo repository.Repository) Service {
-	return Service{repo: repo}
+func New(repo repository.Repository, myCache cache.ICache) Service {
+	return Service{
+		repo:    repo,
+		myCache: myCache}
 }
 
 func (s *Service) Register(ctx context.Context, request models.User) error {
@@ -43,13 +45,13 @@ func (s *Service) Register(ctx context.Context, request models.User) error {
 		return errs.ErrGeneratePassword
 	}
 
-	s.myCache.Set(request.Email, cache.CacheMemory{
+	s.myCache.Save(ctx, request.Email, cache.CacheMemory{
 		Email:    request.Email,
 		Age:      request.Age,
 		Phone:    request.Phone,
 		Name:     request.Name,
 		Password: hashPassword,
-		Role:     models.AdminRole,
+		Role:     request.Role,
 	}, 5*time.Minute)
 
 	return nil
@@ -65,23 +67,20 @@ type CacheMemory struct {
 }
 
 func (s *Service) Verify(ctx context.Context, request models.VerifyRequest) (int, error) {
-	data, ok := s.myCache.Get(request.Email)
-	if !ok {
+
+	var data CacheMemory
+	err := s.myCache.Get(ctx, request.Email, &data)
+	if err != nil {
 		return 0, errors.New("user not found in cache")
 	}
 
-	cacheInfo, ok := data.(CacheMemory)
-	if !ok {
-		return 0, errors.New("data.(CacheMemory)")
-	}
-
 	id, err := s.repo.Register(ctx, models.User{
-		Name:     cacheInfo.Name,
-		Email:    cacheInfo.Email,
-		Password: cacheInfo.Password,
-		Phone:    cacheInfo.Phone,
-		Age:      int32(cacheInfo.Age),
-		Role:     cacheInfo.Role,
+		Name:     data.Name,
+		Email:    data.Email,
+		Password: data.Password,
+		Phone:    data.Phone,
+		Age:      int32(data.Age),
+		Role:     data.Role,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("error from s.repo.Register %w", err)
@@ -91,6 +90,7 @@ func (s *Service) Verify(ctx context.Context, request models.VerifyRequest) (int
 }
 
 func (s *Service) Login(ctx context.Context, request models.LoginRequest) (string, string, error) {
+
 	err := request.Validate()
 	if err != nil {
 		return "", "", err
@@ -214,4 +214,19 @@ func (s *Service) GetList(ctx context.Context) ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+func (s *Service) CheckToken(ctx context.Context, token models.CheckToken) (models.User, error) {
+
+	claims, err := jwt.ParseToken(token.AccessToken)
+	if err != nil {
+		return models.User{}, fmt.Errorf("error from jwt.ParseToken: %w", err)
+	}
+
+	user, err := s.repo.GetByID(ctx, int64(claims.UserID))
+	if err != nil {
+		return models.User{}, fmt.Errorf("error from s.repo.GetByID: %w", err)
+	}
+
+	return user, nil
 }

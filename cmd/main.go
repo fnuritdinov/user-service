@@ -9,13 +9,14 @@ import (
 	"syscall"
 	"time"
 
+	user "github.com/fnuritdinov/proto/userpb"
 	"github.com/fnuritdinov/user-service/internal/config"
 	"github.com/fnuritdinov/user-service/internal/repository"
 	"github.com/fnuritdinov/user-service/internal/server"
 	"github.com/fnuritdinov/user-service/internal/service"
+	"github.com/fnuritdinov/user-service/pkg/cache"
 	"github.com/fnuritdinov/user-service/pkg/db"
 	"github.com/fnuritdinov/user-service/pkg/logger"
-	user "github.com/fnuritdinov/user-service/userpb"
 
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
@@ -54,11 +55,15 @@ func main() {
 		lg.Error("failed to listen: %v", zap.Error(err))
 	}
 
+	cch, err := cache.New(ctx, cfg.ADDRESS)
+	if err != nil {
+		lg.Error("failed to cache: &v", zap.Error(err))
+	}
 	grpcServer := grpc.NewServer()
 
 	userRepo := repository.New(conn)
 
-	userService := service.New(userRepo)
+	userService := service.New(userRepo, cch)
 
 	userServer := server.New(*lg, userService)
 
