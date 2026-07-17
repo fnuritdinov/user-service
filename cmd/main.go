@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -55,15 +56,22 @@ func main() {
 		lg.Error("failed to listen: %v", zap.Error(err))
 	}
 
-	cch, err := cache.New(ctx, cfg.ADDRESS)
+	redisAddress := fmt.Sprintf(
+		"%s:%d",
+		cfg.RedisHost,
+		cfg.RedisPort,
+	)
+
+	myCache, err := cache.New(ctx, redisAddress)
 	if err != nil {
-		lg.Error("failed to cache: &v", zap.Error(err))
+		log.Fatal(err)
 	}
+
 	grpcServer := grpc.NewServer()
 
 	userRepo := repository.New(conn)
 
-	userService := service.New(userRepo, cch)
+	userService := service.New(userRepo, myCache)
 
 	userServer := server.New(*lg, userService)
 

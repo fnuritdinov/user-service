@@ -22,7 +22,7 @@ func New(db *pgxpool.Pool) Repository {
 
 func (r *Repository) Register(ctx context.Context, request models.User) (int, error) {
 	const query = `
-			INSERT INTO mv_users (name, email, password, phone, age, role)
+			INSERT INTO users (name, email, password, phone, age, role)
 			VALUES ($1, $2, $3, $4, $5, $6)
 			RETURNING id`
 
@@ -60,7 +60,7 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (models.User,
 
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&myUser.ID,
-		&myUser.Email,
+		&myUser.Password,
 		&myUser.Role)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -73,6 +73,14 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (models.User,
 }
 
 func (r *Repository) SaveRefreshToken(ctx context.Context, req models.HashTokenReq) error {
+
+	const query = `INSERT INTO hash_tokens (user_id, hash, expired_at) VALUES ($1, $2, $3)`
+
+	_, err := r.db.Exec(ctx, query, req.UserID, req.Hash, req.ExpiredAt)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -110,7 +118,7 @@ func (r *Repository) DeleteRefreshTokenByID(ctx context.Context, tokenID int) er
 }
 
 func (r *Repository) GetByID(ctx context.Context, id int64) (models.User, error) {
-	const query = `SELECT id, name, age, email, password, phone FROM mv_users WHERE id = $1`
+	const query = `SELECT id, name, age, email, phone, role FROM users WHERE id = $1`
 
 	var user models.User
 	err := r.db.QueryRow(ctx, query, id).Scan(
@@ -118,8 +126,8 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (models.User, error)
 		&user.Name,
 		&user.Age,
 		&user.Email,
-		&user.Password,
-		&user.Phone)
+		&user.Phone,
+		&user.Role)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return models.User{}, errs.ErrUserNotFound
@@ -133,7 +141,7 @@ func (r *Repository) GetByID(ctx context.Context, id int64) (models.User, error)
 
 func (r *Repository) Update(ctx context.Context, request models.UpdateUser) error {
 
-	const query = `UPDATE mv_users SET name = $2, phone = $3 WHERE id = $1`
+	const query = `UPDATE users SET name = $2, phone = $3 WHERE id = $1`
 
 	result, err := r.db.Exec(ctx, query, request.ID, request.Name, request.Phone)
 	if err != nil {
@@ -147,7 +155,8 @@ func (r *Repository) Update(ctx context.Context, request models.UpdateUser) erro
 }
 
 func (r *Repository) GetList(ctx context.Context) ([]models.User, error) {
-	const query = `SELECT * FROM users`
+
+	const query = `SELECT id, email, age, name, role, phone, password FROM users`
 
 	rows, err := r.db.Query(ctx, query)
 	if err != nil {

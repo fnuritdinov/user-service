@@ -6,9 +6,6 @@ import (
 	errs "github.com/fnuritdinov/user-service/pkg/errors"
 )
 
-const UserRole = "userRole"
-const AdminRole = "adminRole"
-
 type User struct {
 	ID       int
 	Login    string
@@ -55,6 +52,7 @@ func (lg *LoginRequest) Validate() error {
 	if lg.Email == "" && lg.Password == "" {
 		return errs.ErrFromValidate
 	}
+	return nil
 }
 
 type HashTokenReq struct {
@@ -65,7 +63,7 @@ type HashTokenReq struct {
 }
 
 type RefreshTokenReq struct {
-	RefreshToken string
+	RefreshToken string `json:"refreshToken"`
 }
 
 type RefreshAccessTokens struct {

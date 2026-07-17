@@ -45,14 +45,23 @@ func (s *Service) Register(ctx context.Context, request models.User) error {
 		return errs.ErrGeneratePassword
 	}
 
-	s.myCache.Save(ctx, request.Email, cache.CacheMemory{
-		Email:    request.Email,
-		Age:      request.Age,
-		Phone:    request.Phone,
-		Name:     request.Name,
-		Password: hashPassword,
-		Role:     request.Role,
-	}, 5*time.Minute)
+	err = s.myCache.Save(
+		ctx,
+		request.Email,
+		cache.CacheMemory{
+			Email:    request.Email,
+			Age:      request.Age,
+			Phone:    request.Phone,
+			Name:     request.Name,
+			Password: hashPassword,
+			Role:     request.Role,
+		},
+		5*time.Minute,
+	)
+
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -174,7 +183,7 @@ func (s *Service) RefreshToken(ctx context.Context, request models.RefreshTokenR
 	}
 
 	return models.RefreshAccessTokens{
-		RefreshToken: newHash,
+		RefreshToken: newRefreshToken,
 		AccessToken:  accessToken,
 	}, nil
 }

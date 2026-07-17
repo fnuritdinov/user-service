@@ -15,6 +15,9 @@ type Config struct {
 	DBUser     string `env:"DB_USER"`
 	DBPassword string `env:"DB_PASSWORD"`
 	DBName     string `env:"DB_NAME"`
+
+	RedisHost string `env:"REDIS_HOST"`
+	RedisPort int    `env:"REDIS_PORT"`
 }
 
 func New(filePath string) (Config, error) {
