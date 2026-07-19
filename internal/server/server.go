@@ -62,6 +62,7 @@ func (s *Server) Verify(ctx context.Context, req *user.VerifyUserRequest) (*user
 
 	id, err := s.service.Verify(ctx, request)
 	if err != nil {
+		s.lg.Error("error from s.service.Verify", zap.Error(err))
 		return nil, err
 	}
 
@@ -79,6 +80,7 @@ func (s *Server) Login(ctx context.Context, req *user.LoginUserRequest) (*user.L
 
 	accessToken, refreshToken, err := s.service.Login(ctx, request)
 	if err != nil {
+		s.lg.Error("error from s.service.Login", zap.Error(err))
 		return nil, err
 	}
 
@@ -95,6 +97,7 @@ func (s *Server) RefreshToken(ctx context.Context, req *user.RefreshTokenUserReq
 
 	tokens, err := s.service.RefreshToken(ctx, request)
 	if err != nil {
+		s.lg.Error("error from s.service.RefreshToken", zap.Error(err))
 		return nil, err
 	}
 
@@ -223,7 +226,7 @@ func (s *Server) CheckToken(ctx context.Context, req *user.CheckTokenRequest) (*
 
 	myUser, err := s.service.CheckToken(ctx, request)
 	if err != nil {
-		s.lg.Error("error from s.service.CheckToken")
+		s.lg.Error("error from s.service.CheckToken", zap.Error(err))
 		return nil, err
 	}
 

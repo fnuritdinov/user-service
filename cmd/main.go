@@ -44,7 +44,7 @@ func main() {
 		DBName:   cfg.DBName,
 	})
 	if err != nil {
-		lg.Error("failed to connect to db:", zap.Error(err))
+		lg.Fatal("failed to connect to db", zap.Error(err))
 	}
 	defer conn.Close()
 
@@ -53,7 +53,7 @@ func main() {
 
 	lis, err := net.Listen(cfg.NETWORK, cfg.ADDRESS)
 	if err != nil {
-		lg.Error("failed to listen: %v", zap.Error(err))
+		lg.Fatal("failed to listen", zap.Error(err))
 	}
 
 	redisAddress := fmt.Sprintf(
